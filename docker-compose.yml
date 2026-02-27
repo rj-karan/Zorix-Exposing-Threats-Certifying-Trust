@@ -5,6 +5,8 @@ services:
   postgres:
     image: postgres:15
     container_name: zorix_db
+    env_file:
+      - .env.dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -48,7 +50,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:80"
+      - "3000:3000"
 
 volumes:
   postgres_data:
