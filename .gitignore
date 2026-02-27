@@ -1,0 +1,14 @@
+.env
+.env.dev
+.env.prod
+*.env
+__pycache__/
+*.pyc
+node_modules/
+dist/
+build/
+docker/postgres/data/
+Thumbs.db
+.DS_Store
+.vscode/
+*.log
