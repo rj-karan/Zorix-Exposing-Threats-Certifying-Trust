@@ -1,0 +1,42 @@
+rules:
+  - id: sql-injection-string-concatenation
+    pattern-either:
+      - pattern: |
+          $QUERY = "... " + $INPUT + "..."
+      - pattern: |
+          $QUERY = f"... {$INPUT} ..."
+      - pattern: |
+          $QUERY = "..." % $INPUT
+    message: |
+      Possible SQL injection: User input is directly concatenated into SQL query.
+      Use parameterized queries instead.
+      
+      Vulnerable: query = "SELECT * FROM users WHERE id = " + user_id
+      Secure: cursor.execute("SELECT * FROM users WHERE id = ?", [user_id])
+    languages: [python]
+    severity: ERROR
+    metadata:
+      cwe: CWE-89
+      owasp: A03:2021
+      fix: "Use parameterized queries with placeholders"
+
+  - id: sql-injection-execute-without-params
+    pattern: |
+      $DB.execute($QUERY)
+    message: |
+      Executing SQL without parameters - potential injection risk.
+      Ensure the query uses parameterized inputs.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      cwe: CWE-89
+
+  - id: detect-parameterized-query
+    pattern: |
+      $DB.execute($QUERY, [...])
+    message: |
+      ✓ SECURE: Parameterized query detected (This is the correct pattern)
+    languages: [python]
+    severity: INFO
+    metadata:
+      fix_validation: true

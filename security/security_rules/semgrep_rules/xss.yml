@@ -1,0 +1,31 @@
+rules:
+  - id: xss-unescaped-output
+    pattern-either:
+      - pattern: |
+          return f"<html>... {$INPUT} ...</html>"
+      - pattern: |
+          $EL.innerHTML = $INPUT
+      - pattern: |
+          document.write($INPUT)
+    message: |
+      Possible XSS: User input rendered without encoding.
+      Use proper output encoding for the context.
+      
+      Vulnerable: return f"<div>{user_input}</div>"
+      Secure: return f"<div>{html.escape(user_input)}</div>"
+    languages: [python, javascript]
+    severity: ERROR
+    metadata:
+      cwe: CWE-79
+      owasp: A03:2021
+
+  - id: xss-detect-encoding
+    pattern-either:
+      - pattern: html.escape($INPUT)
+      - pattern: bleach.clean($INPUT)
+    message: |
+      ✓ SECURE: Output encoding detected
+    languages: [python]
+    severity: INFO
+    metadata:
+      fix_validation: true
