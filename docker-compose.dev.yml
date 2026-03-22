@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+
+  backend:
+    build:
+      target: development
+    volumes:
+      - ./backend:/app/backend
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env.dev
+
+  frontend:
+    build:
+      target: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+
+  postgres:
+    env_file:
+      - .env.dev
