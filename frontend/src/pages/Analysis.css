@@ -1,0 +1,446 @@
+/* Analysis Page Styling */
+
+.analysis-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+  padding: 40px 20px;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.analysis-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.analysis-header h1 {
+  font-size: 38px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #e8001d 0%, #ff6b47 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.analysis-header p {
+  color: #999;
+  font-size: 16px;
+}
+
+.analysis-content {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Form Section */
+.analysis-form-section {
+  background: rgba(15, 15, 15, 0.8);
+  border: 1px solid rgba(232, 0, 29, 0.2);
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 40px;
+  backdrop-filter: blur(10px);
+}
+
+.analysis-form-section h2 {
+  font-size: 20px;
+  margin-bottom: 25px;
+  color: #e8001d;
+  border-bottom: 1px solid rgba(232, 0, 29, 0.2);
+  padding-bottom: 15px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-row .full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group .required {
+  color: #e8001d;
+}
+
+.form-group input,
+.form-group select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(232, 0, 29, 0.2);
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.form-group input::placeholder {
+  color: #666;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(232, 0, 29, 0.5);
+  box-shadow: 0 0 10px rgba(232, 0, 29, 0.2);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-group small {
+  color: #666;
+  font-size: 12px;
+}
+
+.error-alert {
+  background: rgba(232, 0, 29, 0.1);
+  border-left: 3px solid #e8001d;
+  color: #ff6b47;
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.error-alert span {
+  font-weight: 600;
+}
+
+/* Analysis Button */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-analyze {
+  width: 100%;
+  background: linear-gradient(135deg, #e8001d 0%, #ff6b47 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(232, 0, 29, 0.4);
+}
+
+.btn-analyze:hover:not(:disabled) {
+  box-shadow: 0 6px 25px rgba(232, 0, 29, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-analyze:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(232, 0, 29, 0.5);
+  color: #e8001d;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(232, 0, 29, 0.1);
+  border-color: #e8001d;
+}
+
+.btn-report {
+  background: linear-gradient(135deg, #0066ff 0%, #0099ff 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 100, 255, 0.4);
+  text-decoration: none;
+  display: inline-flex;
+}
+
+.btn-report:hover {
+  box-shadow: 0 6px 25px rgba(0, 100, 255, 0.6);
+}
+
+/* Results Section */
+.analysis-results-section {
+  background: rgba(15, 15, 15, 0.8);
+  border: 1px solid rgba(232, 0, 29, 0.2);
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 40px;
+  backdrop-filter: blur(10px);
+}
+
+.analysis-results-section h2 {
+  font-size: 20px;
+  margin-bottom: 25px;
+  color: #e8001d;
+  border-bottom: 1px solid rgba(232, 0, 29, 0.2);
+  padding-bottom: 15px;
+}
+
+.severity-section {
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+}
+
+.severity-badge {
+  width: 200px;
+  padding: 30px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid currentColor;
+}
+
+.severity-badge.severity-critical {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff0000;
+}
+
+.severity-badge.severity-high {
+  background: rgba(255, 102, 0, 0.1);
+  color: #ff6600;
+}
+
+.severity-badge.severity-medium {
+  background: rgba(255, 204, 0, 0.1);
+  color: #ffcc00;
+}
+
+.severity-badge.severity-low {
+  background: rgba(0, 204, 0, 0.1);
+  color: #00cc00;
+}
+
+.severity-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.severity-score {
+  font-size: 13px;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+.findings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.finding-card {
+  background: rgba(232, 0, 29, 0.05);
+  border-left: 3px solid #e8001d;
+  padding: 15px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.finding-label {
+  color: #999;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.finding-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #e8001d;
+}
+
+.code-text {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.report-section {
+  background: rgba(0, 100, 255, 0.05);
+  border: 1px solid rgba(0, 100, 255, 0.2);
+  border-left: 3px solid #0066ff;
+  padding: 20px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.report-section h3 {
+  color: #0099ff;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.report-section p {
+  color: #999;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.error-result {
+  background: rgba(232, 0, 29, 0.1);
+  border: 1px solid rgba(232, 0, 29, 0.3);
+  padding: 20px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.error-result h3 {
+  color: #ff6b47;
+  margin-bottom: 10px;
+}
+
+.error-result p {
+  color: #999;
+}
+
+.actions-section {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Info Section */
+.info-section {
+  background: rgba(15, 15, 15, 0.8);
+  border: 1px solid rgba(232, 0, 29, 0.2);
+  border-radius: 12px;
+  padding: 30px;
+  backdrop-filter: blur(10px);
+}
+
+.info-section h3 {
+  font-size: 18px;
+  margin-bottom: 25px;
+  color: #e8001d;
+}
+
+.pipeline-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.step {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  background: rgba(232, 0, 29, 0.05);
+  border-radius: 4px;
+  border-left: 3px solid #e8001d;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8001d 0%, #ff6b47 100%);
+  color: white;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-content strong {
+  color: #e8001d;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.step-content p {
+  color: #999;
+  font-size: 12px;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .analysis-container {
+    padding: 20px;
+  }
+
+  .analysis-header h1 {
+    font-size: 28px;
+  }
+
+  .analysis-form-section,
+  .analysis-results-section,
+  .info-section {
+    padding: 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .findings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pipeline-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .severity-section {
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}

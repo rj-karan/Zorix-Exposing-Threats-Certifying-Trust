@@ -122,3 +122,98 @@ class AnalysisResult(Base):
 
     # Relationships
     bug_report = relationship("BugReport", back_populates="analysis_results")
+    exploit_executions = relationship("ExploitExecution", back_populates="analysis_result")
+    scan_results = relationship("ScanResult", back_populates="analysis_result")
+    vulnerability_score = relationship("VulnerabilityScore", back_populates="analysis_result", uselist=False)
+
+
+class Patch(Base):
+    """Security patch metadata model."""
+
+    __tablename__ = "patches"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    cve_id = Column(String(50), nullable=False, unique=True, index=True)
+    vulnerability_type = Column(String(100), nullable=False)
+    affected_versions = Column(Text, nullable=False)  # JSON list
+    patch_url = Column(String(1024), nullable=True)
+    patch_content = Column(Text, nullable=True)
+    release_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ExploitExecution(Base):
+    """Exploit execution log model."""
+
+    __tablename__ = "exploit_executions"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    exploit_type = Column(String(100), nullable=False)  # SQL_INJECTION, XSS, COMMAND_INJECTION, etc.
+    exploit_payload = Column(Text, nullable=False)
+    execution_status = Column(String(50), nullable=False, default="pending")  # pending, running, success, failed
+    stdout = Column(Text, nullable=True)
+    stderr = Column(Text, nullable=True)
+    return_code = Column(Integer, nullable=True)
+    execution_time_ms = Column(Integer, nullable=True)
+    vulnerable = Column(Boolean, default=False, nullable=False)
+    docker_container_id = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="exploit_executions")
+
+
+class ScanResult(Base):
+    """Static and dynamic scan results model."""
+
+    __tablename__ = "scan_results"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    scan_type = Column(String(50), nullable=False)  # static, dynamic, sast, dast
+    scanner_name = Column(String(100), nullable=False)
+    finding_count = Column(Integer, default=0, nullable=False)
+    critical_count = Column(Integer, default=0, nullable=False)
+    high_count = Column(Integer, default=0, nullable=False)
+    medium_count = Column(Integer, default=0, nullable=False)
+    low_count = Column(Integer, default=0, nullable=False)
+    scan_output = Column(Text, nullable=True)  # Raw scanner output
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="scan_results")
+
+
+class VulnerabilityScore(Base):
+    """Calculated vulnerability score model."""
+
+    __tablename__ = "vulnerability_scores"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, unique=True, index=True)
+    cvss_score = Column(Float, nullable=False)  # 0.0 - 10.0
+    cvss_vector = Column(String(255), nullable=True)
+    severity = Column(String(20), nullable=False)  # CRITICAL, HIGH, MEDIUM, LOW, INFO
+    exploitability = Column(Float, nullable=False)  # 0.0 - 1.0
+    impact_score = Column(Float, nullable=False)  # 0.0 - 1.0
+    confidence = Column(Float, nullable=False)  # 0.0 - 1.0
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="vulnerability_score")
+
+
+class Report(Base):
+    """Generated PDF/HTML report model."""
+
+    __tablename__ = "reports"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, unique=True, index=True)
+    report_format = Column(String(20), nullable=False)  # pdf, html, json
+    file_path = Column(String(1024), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    generated_at = Column(DateTime, default=datetime.utcnow, nullable=False)

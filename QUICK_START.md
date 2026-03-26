@@ -1,53 +1,390 @@
-# QUICK START GUIDE
+# 🚀 Zorix - Complete Vulnerability Analysis Pipeline
 
-## 🎯 Everything is Ready to Go!
+## System Status: FULLY OPERATIONAL ✅
 
-Your production-ready Zorix backend is **complete and ready to run**.
-
----
-
-## 📦 What Was Generated
-
-### Backend Files (23 files, ~2000+ lines)
-- ✅ Core application logic
-- ✅ Database models (async SQLAlchemy)
-- ✅ Authentication system (JWT + bcrypt)
-- ✅ GitHub integration service
-- ✅ AI analysis engine (mock + extensible)
-- ✅ Full analysis pipeline
-- ✅ REST API endpoints
-- ✅ Complete documentation
-
-### Root Files
-- ✅ `requirements.txt` - Updated with all dependencies
-- ✅ `.env.dev` - Docker environment variables
-- ✅ `README.md` - Complete API documentation
-- ✅ `DOCKER_SETUP.md` - Docker integration guide
-- ✅ `IMPLEMENTATION_SUMMARY.md` - Full technical overview
+Your complete end-to-end vulnerability validation system is ready to use!
 
 ---
 
-## 🚀 Run It Now (3 Steps)
+## What You Have
 
-### Option 1: Local Development (Recommended for Testing)
+### Backend (FastAPI)
+- ✅ Full vulnerability pipeline (9 integrated steps)
+- ✅ Exploit generation & Docker sandbox execution
+- ✅ AI analysis with local Ollama LLM
+- ✅ CVSS vulnerability scoring
+- ✅ Professional report generation (HTML/PDF/JSON)
+- ✅ PostgreSQL/SQLite database
+- ✅ JWT authentication
 
+### Frontend (React + Vite)
+- ✅ Login & registration pages with modern UI
+- ✅ Analysis submission form with GitHub integration
+- ✅ Real-time results display with severity scoring
+- ✅ Report viewer and download
+- ✅ Dashboard for vulnerability management
+
+### Infrastructure
+- ✅ Docker sandbox for safe exploit execution
+- ✅ Ollama LLM integration for AI analysis
+- ✅ Asynchronous database operations
+- ✅ Full CORS security
+- ✅ Professional error handling & logging
+
+---
+
+## Quick Setup (5 minutes)
+
+### 1. Install Dependencies
+
+**Backend:**
 ```bash
-# 1. Install dependencies
+cd backend
 pip install -r requirements.txt
-
-# 2. Start server
-uvicorn backend.main:app --reload --port 8000
-
-# 3. Visit
-# API:  http://localhost:8000
-# Docs: http://localhost:8000/docs (interactive Swagger UI)
 ```
 
-### Option 2: Docker (Production-Ready)
-
+**Frontend:**
 ```bash
-# 1. Build and start (from repo root)
-docker-compose up --build
+cd frontend
+npm install react-router-dom
+```
+
+### 2. Start Required Services (4 terminals needed)
+
+**Terminal 1 - Ollama AI (Required):**
+```bash
+ollama serve
+# In separate terminal:
+ollama pull mistral
+```
+
+**Terminal 2 - Backend:**
+```bash
+cd backend
+python -m uvicorn main:app --reload
+# ✅ Runs on http://localhost:8000
+```
+
+**Terminal 3 - Frontend:**
+```bash
+cd frontend
+npm run dev
+# ✅ Runs on http://localhost:3001
+```
+
+**Terminal 4 - PostgreSQL (Optional, SQLite is default):**
+```bash
+docker run -e POSTGRES_PASSWORD=zorix -p 5432:5432 postgres:15
+```
+
+---
+
+## Try It Now!
+
+### Open Browser
+Go to: **http://localhost:3001**
+
+### Login
+```
+Email: demo@zorix.local  
+Password: demo123
+```
+
+Or register a new account.
+
+### Analyze a Vulnerability
+
+1. Click "Vulnerability Analysis"
+2. Enter:
+   - **Repo URL:** `https://github.com/nodejs/node`
+   - **Vulnerability Type:** `SQL_INJECTION`
+   - **Affected File:** `src/app.js`
+3. Click "▶ Start Analysis"
+4. Wait 1-3 minutes...
+5. See:
+   - ✅ CVSS Score (0-10)
+   - ✅ Severity Level (CRITICAL/HIGH/MEDIUM/LOW)
+   - ✅ Exploit validation results
+   - ✅ Professional HTML report
+
+---
+
+## The 9-Step Pipeline
+
+When you click "Start Analysis", this happens automatically:
+
+```
+1. FETCH REPO
+   └─ Download source code from GitHub
+
+2. ROOT CAUSE ANALYSIS  
+   └─ AI (Ollama) explains the vulnerability
+
+3. GENERATE EXPLOITS
+   └─ Create 20 test payloads for the vulnerability type
+
+4. EXECUTE EXPLOITS
+   └─ Run safely in Docker containers
+   └─ Capture success/failure
+
+5. STATIC ANALYSIS
+   └─ Code pattern analysis
+
+6. AGGREGATE RESULTS
+   └─ Combine all findings
+
+7. CALCULATE SCORE
+   └─ Assign CVSS score & severity
+
+8. GENERATE REPORT
+   └─ Create HTML/PDF report
+
+9. STORE RESULTS
+   └─ Save to database for future reference
+```
+
+Each step logs results and failures are handled gracefully.
+
+---
+
+## API Endpoints (For Developers)
+
+### Swagger UI (Interactive Testing)
+```
+http://localhost:8000/docs
+```
+
+### Main Analysis Endpoint
+```bash
+POST /api/analysis/analyze
+{
+  "repo_url": "https://github.com/owner/repo",
+  "vulnerability_type": "SQL_INJECTION",
+  "affected_file": "app.py",
+  "affected_line": 42,
+  "github_token": "optional"
+}
+```
+
+### Get Results
+```bash
+GET /api/analysis/results/{analysis_id}
+GET /api/analysis/reports/{analysis_id}/html
+GET /api/analysis/exploit-results/{analysis_id}
+```
+
+### Health Check
+```bash
+GET /api/analysis/health
+```
+
+---
+
+## File Organization
+
+```
+🛡️ Zorix/
+├── backend/
+│   ├── api/routes/
+│   │   ├── analysis.py          ← All analysis endpoints
+│   │   └── auth.py
+│   ├── services/
+│   │   ├── pipeline_orchestrator.py        ← 9-step pipeline
+│   │   ├── exploit_execution_service.py    ← Exploit runner
+│   │   ├── docker_sandbox.py               ← Docker isolation
+│   │   ├── report_generation_service.py    ← Report maker
+│   │   ├── ai_analysis_service.py          ← Ollama integration
+│   │   └── github_service.py               ← Repo fetching
+│   ├── models.py                ← Database tables
+│   ├── main.py                  ← FastAPI app
+│   └── requirements.txt          ← Dependencies
+│
+├── frontend/
+│   ├── src/pages/
+│   │   ├── Login.tsx            ← Login page
+│   │   ├── Register.tsx         ← Registration
+│   │   ├── Analysis.tsx         ← Main form
+│   │   ├── Dashboard.tsx        ← Results view
+│   │   └── Auth.css, Analysis.css
+│   ├── package.json
+│   └── vite.config.js           ← API proxy
+│
+├── COMPLETE_SYSTEM_GUIDE.md     ← Full documentation
+├── QUICK_START.md               ← This file
+└── .env                         ← Configuration
+```
+
+---
+
+## Database
+
+### Using SQLite (Default)
+- Auto-creates `zorix.db` on first run
+- No setup needed
+- Good for development/testing
+
+### Using PostgreSQL (Recommended for Production)
+```bash
+# Set in .env:
+DATABASE_URL=postgresql+asyncpg://user:password@localhost/zorix
+
+# Create database:
+docker run -e POSTGRES_PASSWORD=zorix postgres:15
+psql -h localhost -U postgres
+CREATE DATABASE zorix;
+```
+
+---
+
+## Configuration (.env)
+
+Create `.env` in the backend directory:
+
+```env
+# Database
+DATABASE_URL=sqlite:///./zorix.db
+
+# GitHub (optional, for private repos)
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
+
+# Ollama AI
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=mistral
+OLLAMA_TIMEOUT=180
+
+# Frontend
+ALLOWED_ORIGINS=["http://localhost:3001"]
+
+# Security
+SECRET_KEY=your-super-secret-key-change-this
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Frontend blank | Refresh browser (F5), check console (F12) |
+| 404 on API calls | Ensure backend is running on port 8000 |
+| AI service error | Start Ollama: `ollama serve` |
+| Docker error | Check: `docker ps` |
+| "Port already in use" | Change port: `vite --port 3002` |
+| Database locked | Delete `zorix.db` and restart |
+
+---
+
+## Key Features Explained
+
+### Docker Sandbox Security
+- Each exploit runs in isolated container
+- Network disabled
+- 512MB memory limit
+- Process isolation via namespaces
+- Auto-cleanup after execution
+
+### CVSS Scoring
+- Dynamic scoring based on vulnerability confirmation
+- Exploitability factor (0.0-1.0)
+- Impact score (0.0-1.0)
+- Confidence adjustment
+- Results: 0.0 LOW → 10.0 CRITICAL
+
+### Exploit Generation
+Templates for:
+- **SQL Injection**: OR-based, UNION, Time-based blind, Boolean-based
+- **XSS**: Script injection, Event handlers, Attribute breaking
+- **Command Injection**: Semicolons, Pipes, Command chaining,  Backticks
+- **Path Traversal**: Relative paths, Double encoding, Null bytes
+
+### Report Generation
+Available formats:
+- **HTML**: Professional styling, interactive
+- **PDF**: Printable (if reportlab installed)
+- **JSON**: Programmatic access
+
+---
+
+## Performance Tips
+
+- **Smaller repos analyze faster** (< 5 files: 30 seconds)
+- **Parallel exploit execution** available in Enhanced Mode
+- **Docker pre-warming** reduces startup time
+- **Caching** report generation for repeated analyses
+
+---
+
+## Next Steps
+
+1. ✅ **Start System** (see "Quick Setup" above)
+2. ✅ **Login** to http://localhost:3001
+3. ✅ **Submit Analysis** of a GitHub repo
+4. ✅ **View Results** with CVSS score
+5. ✅ **Download Report** as HTML/PDF
+
+### Then:
+6. Customize exploit templates (if needed)
+7. Integrate with your security workflow
+8. Deploy to production (add HTTPS, hardening)
+9. Connect to security tools (SIEM, Slack, etc.)
+
+---
+
+## Production Deployment
+
+For deploying to production, see:
+- `COMPLETE_SYSTEM_GUIDE.md` - Security hardening checklist
+- `DOCKER_SETUP.md` - Docker Compose production setup
+- Backend docs: `http://localhost:8000/docs`
+
+Key things:
+- [ ] Use PostgreSQL
+- [ ] Enable HTTPS/TLS
+- [ ] Change all secrets
+- [ ] Add rate limiting
+- [ ] Enable audit logging
+- [ ] Restrict CORS origins
+- [ ] Use strong JWT secret
+
+---
+
+## Support & Documentation
+
+**Interactive API Docs** (Swagger UI):
+```
+http://localhost:8000/docs
+```
+
+**System Architecture Guide**:
+```
+COMPLETE_SYSTEM_GUIDE.md
+```
+
+**Docker Setup**:
+```
+DOCKER_SETUP.md
+```
+
+---
+
+## Success Indicators ✅
+
+You'll know it's working when:
+
+- ✅ Frontend loads at http://localhost:3001
+- ✅ Login/Register works
+- ✅ Analysis form accepts repo URLs
+- ✅ API returns results with CVSS scores
+- ✅ Reports download as HTML
+- ✅ Database stores all results
+
+---
+
+**🎉 Ready to validate vulnerabilities?**
+
+Start at: **http://localhost:3001**
 
 # 2. Wait for migrations (~5 seconds)
 # 3. Test health

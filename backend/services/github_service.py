@@ -109,3 +109,21 @@ async def _fetch_file_content(
     except Exception:
         return None
     return None
+
+
+class GitHubService:
+    """Service class for GitHub API operations."""
+    
+    def __init__(self, token: str | None = None):
+        """Initialize GitHub service with optional API token."""
+        self.token = token or os.getenv("GITHUB_TOKEN")
+    
+    async def fetch_repo_files(
+        self,
+        repo_url: str,
+        github_token: str | None = None
+    ) -> dict[str, str]:
+        """Fetch all analyzable files from a GitHub repository."""
+        # Use provided token, fall back to instance token
+        token = github_token or self.token
+        return await fetch_repo_files(repo_url, github_token=token)
