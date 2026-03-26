@@ -1,11 +1,20 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from backend.models import BugReport, CodeSnapshot, AnalysisResult, Project
-from backend.core import github_service, ai_analysis_service, scoring_service
+from backend.core import github_service, scoring_service
+from backend.core.prompts import build_rca_prompt, SYSTEM_PROMPT
+from backend.config import get_settings
+from backend.services.ai_analysis_service import OllamaService
 import json
 import logging
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
+ai_analysis_service = OllamaService(
+    base_url=settings.OLLAMA_BASE_URL,
+    model=settings.OLLAMA_MODEL,
+    timeout=settings.OLLAMA_TIMEOUT
+)
 
 
 class AnalysisService:
@@ -71,13 +80,16 @@ class AnalysisService:
 
             # Step 4: Run AI analysis
             logger.info(f"Running AI analysis")
-            ai_result = await ai_analysis_service.analyze(
-                bug_report_title=bug_report.title,
-                bug_report_description=bug_report.description,
-                affected_file=bug_report.affected_file,
-                code_context=code_context.get("context_code", code_context.get("file_content")),
-                enriched_knowledge=enriched_knowledge,
+            analysis_result_obj = await ai_analysis_service.analyze_repo(
+                repo_url=project.repository_url
             )
+            
+            ai_result = {
+                "root_cause": getattr(analysis_result_obj, "root_cause", ""),
+                "exploit_payload": getattr(analysis_result_obj, "proof_of_concept", ""),
+                "suggested_patch": getattr(analysis_result_obj, "recommended_fix", ""),
+                "confidence_score": getattr(analysis_result_obj, "cvss_score", 0.5),
+            }
 
             # Step 5: Compute score
             logger.info(f"Computing severity score")
