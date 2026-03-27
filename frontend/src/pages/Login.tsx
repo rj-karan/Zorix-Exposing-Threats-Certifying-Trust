@@ -1,15 +1,19 @@
-import { useState } from 'react'
+﻿import { useState, FormEvent, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Auth.css'
 
-export default function Login({ onLoginSuccess }) {
+interface LoginProps {
+  onLoginSuccess?: () => void
+}
+
+export default function Login({ onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -34,7 +38,7 @@ export default function Login({ onLoginSuccess }) {
       if (onLoginSuccess) onLoginSuccess()
       navigate('/dashboard')
     } catch (err) {
-      setError(err.message)
+      setError((err as Error).message || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -60,7 +64,7 @@ export default function Login({ onLoginSuccess }) {
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-title">
-            🛡️ ZORIX
+            ðŸ›¡ï¸ ZORIX
           </div>
           <div className="auth-subtitle">
             Exposing Threats, Certifying Trust
@@ -86,7 +90,7 @@ export default function Login({ onLoginSuccess }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               required
               disabled={loading}
             />
@@ -128,3 +132,4 @@ export default function Login({ onLoginSuccess }) {
     </div>
   )
 }
+

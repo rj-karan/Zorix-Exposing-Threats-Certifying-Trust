@@ -8,13 +8,14 @@ settings = get_settings()
 engine_kwargs = {
     "echo": settings.DEBUG,
     "future": True,
-    "pool_pre_ping": True,
-    "pool_recycle": 3600,
 }
 
-# SQLite-specific configuration
+# Database-specific configuration
 if settings.DATABASE_TYPE == "sqlite":
     engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 3600
 
 engine = create_async_engine(
     settings.DATABASE_URL,

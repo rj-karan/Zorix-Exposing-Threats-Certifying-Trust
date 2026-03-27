@@ -160,7 +160,9 @@ def _parse_response(raw: str) -> AnalysisResult:
         )
     except json.JSONDecodeError as e:
         logger.warning(f"Could not parse JSON from LLM response: {e}")
-        logger.warning(f"Raw response was: {raw[:500]}")
+        # Safely log raw response by encoding it
+        safe_response = raw[:500].encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+        logger.warning(f"Raw response was: {safe_response}")
         return AnalysisResult(
             summary="Analysis complete — could not parse structured output",
             severity="UNKNOWN",

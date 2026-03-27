@@ -85,7 +85,7 @@ class DockerSandbox:
 
                 # Wait for completion
                 exit_code = container.wait(timeout=timeout)
-                logs = container.logs(stdout=True, stderr=True).decode()
+                logs = container.logs(stdout=True, stderr=True).decode(errors='replace')
 
                 # Analyze results
                 is_vulnerable = self._analyze_vulnerability(logs, exploit_type)

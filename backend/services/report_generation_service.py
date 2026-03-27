@@ -379,7 +379,7 @@ class ReportGenerationService:
         """
 
         try:
-            filepath.write_text(html_content)
+            filepath.write_text(html_content, encoding='utf-8')
             logger.info(f"HTML report generated: {filepath}")
             return str(filepath)
         except Exception as e:

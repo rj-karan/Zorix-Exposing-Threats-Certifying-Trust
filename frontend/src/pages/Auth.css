@@ -1,4 +1,4 @@
-/* Auth pages styling (Login, Register) */
+﻿/* Auth pages styling (Login, Register) */
 
 .auth-container {
   min-height: 100vh;
@@ -348,3 +348,4 @@
     display: none;
   }
 }
+

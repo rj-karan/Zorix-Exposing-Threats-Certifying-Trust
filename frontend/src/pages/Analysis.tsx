@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import './Analysis.css'
 
 export default function Analysis() {
@@ -75,7 +75,7 @@ export default function Analysis() {
   return (
     <div className="analysis-container">
       <div className="analysis-header">
-        <h1>🔍 Vulnerability Analysis</h1>
+        <h1>ðŸ” Vulnerability Analysis</h1>
         <p>Submit a GitHub repository for comprehensive security analysis</p>
       </div>
 
@@ -155,7 +155,7 @@ export default function Analysis() {
 
             {error && (
               <div className="error-alert">
-                <span>⚠️ Error:</span> {error}
+                <span>âš ï¸ Error:</span> {error}
               </div>
             )}
 
@@ -170,7 +170,7 @@ export default function Analysis() {
                   Analyzing... (this may take 1-2 minutes)
                 </>
               ) : (
-                '▶ Start Analysis'
+                'â–¶ Start Analysis'
               )}
             </button>
           </form>
@@ -179,7 +179,7 @@ export default function Analysis() {
         {/* Results Section */}
         {results && (
           <div className="analysis-results-section">
-            <h2>📊 Analysis Results</h2>
+            <h2>ðŸ“Š Analysis Results</h2>
 
             {results.status === 'completed' ? (
               <>
@@ -196,7 +196,7 @@ export default function Analysis() {
                   <div className="finding-card">
                     <div className="finding-label">Vulnerability Confirmed</div>
                     <div className="finding-value">
-                      {results.vulnerable ? '✓ YES' : '✗ NO'}
+                      {results.vulnerable ? 'âœ“ YES' : 'âœ— NO'}
                     </div>
                   </div>
 
@@ -206,15 +206,51 @@ export default function Analysis() {
                   </div>
 
                   <div className="finding-card">
+                    <div className="finding-label">Confirmed Vulnerabilities</div>
+                    <div className="finding-value">{results.vulnerabilities_confirmed || 0}</div>
+                  </div>
+
+                  <div className="finding-card">
                     <div className="finding-label">Analysis ID</div>
                     <div className="finding-value code-text">{results.analysis_id.substring(0, 8)}...</div>
                   </div>
                 </div>
 
+                {/* Exploit Details */}
+                {results.exploit_details && results.exploit_details.length > 0 && (
+                  <div className="exploit-details-section" style={{ marginTop: '20px' }}>
+                    <h3 style={{ color: '#e8001d', marginBottom: '16px' }}>ðŸ¯ Exploit Execution Details</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {results.exploit_details.map((exploit: any, idx: number) => (
+                        <div key={idx} style={{
+                          border: '1px solid rgba(232, 0, 29, 0.3)',
+                          borderRadius: '4px',
+                          padding: '12px',
+                          background: 'rgba(0, 0, 0, 0.2)'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ color: '#f0f0f0', fontWeight: 'bold' }}>{exploit.exploit_type || 'Unknown'}</span>
+                            <span style={{
+                              color: exploit.vulnerable ? '#00ff64' : '#e8001d',
+                              fontWeight: 'bold',
+                              fontSize: '12px'
+                            }}>
+                              {exploit.vulnerable ? 'âœ" VULNERABLE' : 'âœ— SAFE'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#888', fontFamily: "'Share Tech Mono', monospace" }}>
+                            Status: {exploit.status || 'completed'} | Return Code: {exploit.return_code || 0}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Report Link */}
                 {results.report_url && (
                   <div className="report-section">
-                    <h3>📄 Full Report</h3>
+                    <h3>ðŸ“„ Full Report</h3>
                     <p>Download the detailed security analysis report:</p>
                     <a
                       href={results.report_url}
@@ -222,7 +258,7 @@ export default function Analysis() {
                       rel="noopener noreferrer"
                       className="btn btn-report"
                     >
-                      📥 Download HTML Report
+                      ðŸ“¥ Download HTML Report
                     </a>
                   </div>
                 )}
@@ -239,7 +275,7 @@ export default function Analysis() {
               </>
             ) : (
               <div className="error-result">
-                <h3>⚠️ Analysis Failed</h3>
+                <h3>âš ï¸ Analysis Failed</h3>
                 <p>{results.error || 'An unknown error occurred'}</p>
               </div>
             )}
@@ -248,7 +284,7 @@ export default function Analysis() {
 
         {/* Info Section */}
         <div className="info-section">
-          <h3>📖 How It Works</h3>
+          <h3>ðŸ“– How It Works</h3>
           <div className="pipeline-steps">
             <div className="step">
               <div className="step-number">1</div>
@@ -291,3 +327,4 @@ export default function Analysis() {
     </div>
   )
 }
+

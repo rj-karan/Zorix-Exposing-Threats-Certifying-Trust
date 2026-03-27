@@ -1,0 +1,91 @@
+rules:
+  # SQL Injection
+  - id: sql-injection-string-concat
+    pattern: |
+      cursor.execute(f"...")
+    message: "SQL injection via f-string in query"
+    severity: ERROR
+    languages: [python]
+
+  - id: sql-injection-format
+    pattern: |
+      cursor.execute("..." % ...)
+    message: "SQL injection via string formatting"
+    severity: ERROR
+    languages: [python]
+
+  # Command Injection
+  - id: os-system-call
+    pattern: |
+      os.system(...)
+    message: "Potential command injection via os.system()"
+    severity: ERROR
+    languages: [python]
+
+  - id: subprocess-shell-true
+    pattern: |
+      subprocess.call(..., shell=True, ...)
+    message: "subprocess with shell=True enables command injection"
+    severity: ERROR
+    languages: [python]
+
+  # Eval / Exec
+  - id: eval-usage
+    pattern: |
+      eval(...)
+    message: "eval() usage can lead to code injection"
+    severity: ERROR
+    languages: [python]
+
+  - id: exec-usage
+    pattern: |
+      exec(...)
+    message: "exec() usage can lead to code injection"
+    severity: ERROR
+    languages: [python]
+
+  # Deserialization
+  - id: pickle-loads
+    pattern: |
+      pickle.loads(...)
+    message: "Pickle deserialization of untrusted data can lead to RCE"
+    severity: ERROR
+    languages: [python]
+
+  - id: yaml-unsafe-load
+    pattern: |
+      yaml.load(...) 
+    message: "yaml.load without SafeLoader can execute arbitrary code"
+    severity: WARNING
+    languages: [python]
+
+  # Weak Crypto
+  - id: md5-usage
+    pattern: |
+      hashlib.md5(...)
+    message: "MD5 is a weak hash function, use SHA-256 or better"
+    severity: WARNING
+    languages: [python]
+
+  # Hardcoded Secrets
+  - id: hardcoded-password
+    pattern: |
+      password = "..."
+    message: "Hardcoded password detected"
+    severity: WARNING
+    languages: [python]
+
+  # XSS (JavaScript)
+  - id: innerhtml-assignment
+    pattern: |
+      $X.innerHTML = ...
+    message: "Direct innerHTML assignment can lead to XSS"
+    severity: ERROR
+    languages: [javascript, typescript]
+
+  - id: document-write
+    pattern: |
+      document.write(...)
+    message: "document.write can lead to XSS vulnerabilities"
+    severity: ERROR
+    languages: [javascript, typescript]

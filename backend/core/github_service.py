@@ -57,7 +57,7 @@ class GitHubService:
                         if "content" in data:
                             import base64
 
-                            content = base64.b64decode(data["content"]).decode("utf-8")
+                            content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
                             logger.info(f"Successfully fetched {file_path} from {repo}")
                             return content
                         else:

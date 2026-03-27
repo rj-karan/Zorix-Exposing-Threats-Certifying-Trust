@@ -15,3 +15,6 @@ httpx==0.25.2
 email-validator==2.1.0
 docker==7.0.0
 reportlab==4.0.7
+aiofiles==23.2.1
+python-multipart==0.0.6
+websockets==12.0

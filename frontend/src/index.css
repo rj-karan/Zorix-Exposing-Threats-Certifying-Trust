@@ -78,3 +78,4 @@ body { background: var(--b); color: var(--w1); font-family: 'Rajdhani', sans-ser
 @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 .fade-up { opacity:0; animation:fadeUp .5s ease forwards; }
 .d1{animation-delay:.05s} .d2{animation-delay:.1s} .d3{animation-delay:.15s} .d4{animation-delay:.2s}
+

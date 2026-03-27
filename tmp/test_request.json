@@ -1,0 +1,6 @@
+{
+    "repo_url": "https://github.com/juice-shop/juice-shop",
+    "vulnerability_type": "SQL_INJECTION",
+    "affected_file": "server.js",
+    "bug_description": "SQL injection in search endpoint"
+}

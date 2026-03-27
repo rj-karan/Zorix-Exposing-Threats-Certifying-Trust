@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Auth.css'
 
@@ -57,7 +57,7 @@ export default function Register() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-title">
-            🛡️ ZORIX
+            ðŸ›¡ï¸ ZORIX
           </div>
           <div className="auth-subtitle">
             Create Your Security Account
@@ -83,7 +83,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               required
               disabled={loading}
             />
@@ -96,7 +96,7 @@ export default function Register() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               required
               disabled={loading}
             />
@@ -126,3 +126,4 @@ export default function Register() {
     </div>
   )
 }
+

@@ -1,25 +1,65 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 
-const ALL_CVES = [
-  { id:'CVE-2024-1234', severity:'CRITICAL', score:9.8, status:'analyzing',  system:'Apache Struts 2',  desc:'Remote code execution via OGNL injection in file upload', date:'2024-03-15' },
-  { id:'CVE-2024-5678', severity:'HIGH',     score:8.1, status:'simulating', system:'OpenSSL 3.x',      desc:'Buffer overflow in X.509 certificate parsing', date:'2024-03-14' },
-  { id:'CVE-2024-9012', severity:'HIGH',     score:7.6, status:'complete',   system:'Linux Kernel 6.x', desc:'Privilege escalation via use-after-free in netfilter', date:'2024-03-13' },
-  { id:'CVE-2024-3456', severity:'MEDIUM',   score:6.2, status:'failed',     system:'Node.js 18',       desc:'Path traversal in built-in HTTP module', date:'2024-03-12' },
-  { id:'CVE-2024-7890', severity:'CRITICAL', score:9.1, status:'complete',   system:'Spring Boot 3',    desc:'Actuator endpoint exposes sensitive env variables', date:'2024-03-11' },
-  { id:'CVE-2024-2345', severity:'HIGH',     score:8.4, status:'pending',    system:'Docker Engine',    desc:'Container escape via runc vulnerability', date:'2024-03-10' },
-  { id:'CVE-2024-6789', severity:'MEDIUM',   score:5.9, status:'complete',   system:'Nginx 1.25',       desc:'HTTP/2 rapid reset denial of service', date:'2024-03-09' },
-  { id:'CVE-2024-0123', severity:'LOW',      score:3.1, status:'complete',   system:'curl 8.x',         desc:'Certificate verification bypass in QUIC', date:'2024-03-08' },
-]
+interface VulnerabilityRecord {
+  id: string
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+  score: number
+  status: string
+  system: string
+  desc: string
+  date: string
+}
 
-const SEV_COL: Record<string,string> = { CRITICAL:'#ff1a35', HIGH:'#ffc800', MEDIUM:'#ff7800', LOW:'#00ff64' }
+const SEV_COL: Record<string, string> = { CRITICAL: '#ff1a35', HIGH: '#ffc800', MEDIUM: '#ff7800', LOW: '#00ff64' }
 const FILTERS = ['All', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
 export default function Vulnerabilities() {
   const [filter, setFilter] = useState('All')
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<typeof ALL_CVES[0] | null>(null)
+  const [selected, setSelected] = useState<VulnerabilityRecord | null>(null)
+  const [results, setResults] = useState<VulnerabilityRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const visible = ALL_CVES.filter(c =>
+  useEffect(() => {
+    const fetchResults = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('http://localhost:8000/api/analysis/results')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        
+        // Map API results to CVE format
+        const mapped = (data.results || []).map((r: any, idx: number) => {
+          const severity = (r.severity || 'LOW').toUpperCase() as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+          return {
+            id: `CVE-2024-${String(1000 + idx).slice(-4)}`,
+            severity,
+            score: r.cvss_score || 5.0,
+            status: r.status || 'analyzing',
+            system: r.repository || 'Unknown System',
+            desc: r.root_cause || r.vulnerability_type || 'No description available',
+            date: r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          }
+        })
+        
+        setResults(mapped)
+        setError('')
+      } catch (err) {
+        console.error('Failed to fetch results:', err)
+        setError('Failed to load vulnerabilities')
+        setResults([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchResults()
+    const interval = setInterval(fetchResults, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const visible = results.filter(c =>
     (filter === 'All' || c.severity === filter) &&
     (c.id.toLowerCase().includes(search.toLowerCase()) || c.system.toLowerCase().includes(search.toLowerCase()))
   )
@@ -40,8 +80,29 @@ export default function Vulnerabilities() {
           </div>
         </div>
 
+        {/* LOADING STATE */}
+        {loading && (
+          <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 12 }}>Loading vulnerabilities...</div>
+          </div>
+        )}
+
+        {/* ERROR STATE */}
+        {error && (
+          <div style={{ padding: 16, border: '1px solid rgba(255,26,53,.3)', borderRadius: 2, color: '#ff1a35', fontFamily: "'Share Tech Mono',monospace", fontSize: 12 }}>
+            {error}
+          </div>
+        )}
+
+        {/* EMPTY STATE */}
+        {!loading && !error && visible.length === 0 && (
+          <div style={{ padding: 40, textAlign: 'center', color: '#555' }}>
+            <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 12 }}>No vulnerabilities found</div>
+          </div>
+        )}
+
         {/* CARDS */}
-        {visible.map((c,i) => (
+        {!loading && visible.map((c, i) => (
           <div key={i} className="panel" onClick={()=>setSelected(c)} style={{ cursor:'pointer', border: selected?.id===c.id ? '1px solid rgba(232,0,29,.4)' : undefined }}>
             <div className="corner tl"/><div className="corner tr"/><div className="corner bl"/><div className="corner br"/>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
@@ -55,7 +116,7 @@ export default function Vulnerabilities() {
                 <div style={{ fontSize:13, color:'#777' }}>{c.desc}</div>
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:32, color:SEV_COL[c.severity], lineHeight:1, textShadow:`0 0 15px ${SEV_COL[c.severity]}66` }}>{c.score}</div>
+                <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:32, color:SEV_COL[c.severity], lineHeight:1, textShadow:`0 0 15px ${SEV_COL[c.severity]}66` }}>{c.score.toFixed(1)}</div>
                 <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:9, color:'#555', letterSpacing:1 }}>CVSS v3</div>
                 <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:10, color:'#444', marginTop:6 }}>{c.date}</div>
               </div>
@@ -102,3 +163,4 @@ export default function Vulnerabilities() {
     </div>
   )
 }
+
