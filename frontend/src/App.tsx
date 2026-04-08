@@ -3,9 +3,7 @@ import Dashboard from './pages/Dashboard'
 import Vulnerabilities from './pages/Vulnerabilities'
 import Reports from './pages/Reports'
 import Analysis from './pages/Analysis'
-import Analytics from './pages/Analytics'
-import Patches from './pages/Patches'
-import Settings from './pages/Settings'
+import AdminPanel from './pages/AdminPanel'
 
 function UserAccountSection() {
   const email = localStorage.getItem('user_email') || 'Not logged in'
@@ -29,16 +27,17 @@ function UserAccountSection() {
   )
 }
 
-type Tab = 'dashboard' | 'vulnerabilities' | 'reports' | 'analysis' | 'analytics' | 'patches' | 'settings'
+type Tab = 'dashboard' | 'vulnerabilities' | 'reports' | 'analysis' | 'analytics' | 'patches' | 'settings' | 'admin'
 
 const NAV = [
-  { key: 'dashboard',       label: 'Dashboard',      icon: '\u{1F4CA}' },
-  { key: 'vulnerabilities', label: 'Verifications',   icon: '\u{1F6E1}', badge: 12 },
-  { key: 'reports',         label: 'Reports',         icon: '\u{1F4C4}' },
-  { key: 'analysis',        label: 'Analysis',        icon: '\u{1F50D}' },
-  { key: 'analytics',       label: 'Analytics',       icon: '\u{1F4C8}' },
-  { key: 'patches',         label: 'Patches',         icon: '\u{1F529}' },
-  { key: 'settings',        label: 'Settings',        icon: '\u{2699}' },
+  { key: 'dashboard',      label: 'Dashboard',      icon: 'Γ¼í' },
+  { key: 'vulnerabilities',label: 'Verifications',  icon: 'ΓùÄ', badge: 12 },
+  { key: 'reports',        label: 'Reports',        icon: 'Γëí' },
+  { key: 'analysis',       label: 'Analysis',       icon: '🔍' },
+  { key: 'admin',          label: 'Admin Panel',    icon: '⚙️' },
+  { key: 'analytics',      label: 'Analytics',      icon: 'Γƒí' },
+  { key: 'patches',        label: 'Patches',        icon: 'Γè₧' },
+  { key: 'settings',       label: 'Settings',       icon: 'ΓÜÖ' },
 ]
 
 export default function App() {
@@ -117,7 +116,7 @@ export default function App() {
           </div>
 
           <div style={{ display:'flex', gap:8 }}>
-            {['\u{1F514}','\u{1F50D}'].map((icon, i) => (
+            {['≡ƒöì','≡ƒöö'].map((icon, i) => (
               <div key={i} style={{ width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(232,0,29,.18)', borderRadius:3, background:'rgba(232,0,29,.04)', cursor:'pointer', fontSize:18, position:'relative' }}>
                 {icon}
                 {i===1 && <div style={{ position:'absolute', top:6, right:6, width:7, height:7, background:'#e8001d', borderRadius:'50%', border:'1.5px solid #000' }} />}
@@ -132,12 +131,24 @@ export default function App() {
           {tab === 'vulnerabilities' && <Vulnerabilities />}
           {tab === 'reports'         && <Reports />}
           {tab === 'analysis'        && <Analysis />}
-          {tab === 'analytics'       && <Analytics />}
-          {tab === 'patches'         && <Patches />}
-          {tab === 'settings'        && <Settings />}
+          {tab === 'admin'           && <AdminPanel />}
+          {tab === 'analytics'       && <ComingSoon label="Analytics" />}
+          {tab === 'patches'         && <ComingSoon label="Patches" />}
+          {tab === 'settings'        && <ComingSoon label="Settings" />}
         </main>
       </div>
       <style>{`@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}`}</style>
     </div>
   )
 }
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:16 }}>
+      <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:48, letterSpacing:8, color:'rgba(232,0,29,.3)' }}>{label}</div>
+      <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:'#555', letterSpacing:3 }}>// COMING SOON</div>
+    </div>
+  )
+}
+
+

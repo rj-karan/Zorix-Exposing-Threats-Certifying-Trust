@@ -99,12 +99,14 @@ from backend.api.routes import analysis, auth
 from backend.api.routes.logs import router as logs_router
 from backend.api.routes.settings_routes import router as settings_router
 from backend.api.routes.websocket import router as ws_router
+from backend.api.routes.admin import router as admin_router
 
 app.include_router(analysis.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(logs_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
 app.include_router(ws_router)
+app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/health")

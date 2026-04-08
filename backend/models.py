@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Integer, Float, Boolean, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Integer, Float, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.orm import relationship
@@ -11,16 +11,16 @@ from datetime import datetime
 # Cross-dialect UUID support
 class GUID(TypeDecorator):
     """Platform-independent GUID type that uses CHAR(36) on SQLite and UUID on PostgreSQL."""
-
+    
     impl = CHAR(36)
     cache_ok = True
-
+    
     def load_dialect_impl(self, dialect):
         settings = get_settings()
         if settings.DATABASE_TYPE == "postgres":
             return dialect.type_descriptor(UUID(as_uuid=True))
         return dialect.type_descriptor(CHAR(36))
-
+    
     def process_bind_param(self, value, dialect):
         settings = get_settings()
         if value is None:
@@ -28,7 +28,7 @@ class GUID(TypeDecorator):
         if settings.DATABASE_TYPE == "postgres":
             return value
         return str(value) if not isinstance(value, str) else value
-
+    
     def process_result_value(self, value, dialect):
         settings = get_settings()
         if value is None:
@@ -37,75 +37,6 @@ class GUID(TypeDecorator):
             return value
         return uuid.UUID(value) if isinstance(value, str) else value
 
-
-# =====================================================
-# MASTER ANALYSIS TABLE — tracks entire pipeline run
-# =====================================================
-
-class Analysis(Base):
-    """Master analysis table — one row per pipeline run."""
-
-    __tablename__ = "analyses"
-
-    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    repo_url = Column(String(1024), nullable=False)
-    bug_description = Column(Text, nullable=False, default="")
-    status = Column(String(50), nullable=False, default="pending")
-    current_stage = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    completed_at = Column(DateTime, nullable=True)
-
-    # Relationships
-    pipeline_runs = relationship("PipelineRun", back_populates="analysis", cascade="all, delete-orphan")
-    log_entries = relationship("LogEntry", back_populates="analysis", cascade="all, delete-orphan")
-
-
-class PipelineRun(Base):
-    """Tracks each pipeline stage execution."""
-
-    __tablename__ = "pipeline_runs"
-
-    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=False, index=True)
-    stage_name = Column(String(100), nullable=False)
-    status = Column(String(50), nullable=False, default="pending")
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    error_message = Column(Text, nullable=True)
-
-    analysis = relationship("Analysis", back_populates="pipeline_runs")
-
-
-class LogEntry(Base):
-    """Structured log entries for pipeline observability."""
-
-    __tablename__ = "log_entries"
-
-    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=True, index=True)
-    stage = Column(String(100), nullable=True)
-    level = Column(String(20), nullable=False, default="INFO")
-    message = Column(Text, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    extra = Column(Text, nullable=True)  # JSON string for extra data
-
-    analysis = relationship("Analysis", back_populates="log_entries")
-
-
-class AppSetting(Base):
-    """Persistent application settings (key-value store)."""
-
-    __tablename__ = "app_settings"
-
-    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    key = Column(String(255), unique=True, nullable=False, index=True)
-    value = Column(Text, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-# =====================================================
-# EXISTING MODELS — UNCHANGED
-# =====================================================
 
 class User(Base):
     """User model."""
@@ -146,6 +77,8 @@ class BugReport(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
+    repository_url = Column(String(1024), nullable=False)
+    vulnerability_type = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
     severity = Column(String(50), nullable=True)
     cve_id = Column(String(50), nullable=True, index=True)
@@ -183,15 +116,11 @@ class AnalysisResult(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     bug_report_id = Column(GUID(), ForeignKey("bug_reports.id"), nullable=False, index=True)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=True, index=True)
     root_cause = Column(Text, nullable=True)
     exploit_payload = Column(Text, nullable=True)
     suggested_patch = Column(Text, nullable=True)
     confidence_score = Column(Float, default=0.0, nullable=False)
-    cwe_id = Column(String(50), nullable=True)
-    vulnerable_file = Column(String(1024), nullable=True)
-    vulnerable_function = Column(String(512), nullable=True)
-    affected_lines = Column(Text, nullable=True)  # JSON string
+    environment_type = Column(String(100), nullable=True)  # python, nodejs, php, java
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
@@ -199,6 +128,11 @@ class AnalysisResult(Base):
     exploit_executions = relationship("ExploitExecution", back_populates="analysis_result")
     scan_results = relationship("ScanResult", back_populates="analysis_result")
     vulnerability_score = relationship("VulnerabilityScore", back_populates="analysis_result", uselist=False)
+    payload_results = relationship("PayloadResult", back_populates="analysis_result")
+    ollama_prompts = relationship("OllamaPrompt", back_populates="analysis_result")
+    docker_logs = relationship("DockerLog", back_populates="analysis_result")
+    backend_stage_logs = relationship("BackendStageLog", back_populates="analysis_result")
+    dynamic_scan_logs = relationship("DynamicScanLog", back_populates="analysis_result")
 
 
 class Patch(Base):
@@ -207,16 +141,11 @@ class Patch(Base):
     __tablename__ = "patches"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=True, index=True)
-    cve_id = Column(String(50), nullable=True, index=True)
-    cve_ids = Column(Text, nullable=True)  # JSON list
-    cvss_score = Column(Float, nullable=True)
-    vulnerability_type = Column(String(100), nullable=True)
-    affected_versions = Column(Text, nullable=True)  # JSON list
-    patch_description = Column(Text, nullable=True)
+    cve_id = Column(String(50), nullable=False, unique=True, index=True)
+    vulnerability_type = Column(String(100), nullable=False)
+    affected_versions = Column(Text, nullable=False)  # JSON list
     patch_url = Column(String(1024), nullable=True)
     patch_content = Column(Text, nullable=True)
-    references = Column(Text, nullable=True)  # JSON list
     release_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -228,9 +157,9 @@ class ExploitExecution(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
-    exploit_type = Column(String(100), nullable=False)
+    exploit_type = Column(String(100), nullable=False)  # SQL_INJECTION, XSS, COMMAND_INJECTION, etc.
     exploit_payload = Column(Text, nullable=False)
-    execution_status = Column(String(50), nullable=False, default="pending")
+    execution_status = Column(String(50), nullable=False, default="pending")  # pending, running, success, failed
     stdout = Column(Text, nullable=True)
     stderr = Column(Text, nullable=True)
     return_code = Column(Integer, nullable=True)
@@ -252,16 +181,14 @@ class ScanResult(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=True, index=True)
-    scan_type = Column(String(50), nullable=False)  # static, dynamic
+    scan_type = Column(String(50), nullable=False)  # static, dynamic, sast, dast
     scanner_name = Column(String(100), nullable=False)
     finding_count = Column(Integer, default=0, nullable=False)
     critical_count = Column(Integer, default=0, nullable=False)
     high_count = Column(Integer, default=0, nullable=False)
     medium_count = Column(Integer, default=0, nullable=False)
     low_count = Column(Integer, default=0, nullable=False)
-    findings = Column(Text, nullable=True)  # JSON detailed findings
-    scan_output = Column(Text, nullable=True)
+    scan_output = Column(Text, nullable=True)  # Raw scanner output
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
@@ -275,15 +202,12 @@ class VulnerabilityScore(Base):
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, unique=True, index=True)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=True, index=True)
-    cvss_score = Column(Float, nullable=False)
+    cvss_score = Column(Float, nullable=False)  # 0.0 - 10.0
     cvss_vector = Column(String(255), nullable=True)
-    severity = Column(String(20), nullable=False)
-    exploitability = Column(Float, nullable=False)
-    impact_score = Column(Float, nullable=False)
-    confidence = Column(Float, nullable=False)
-    component_breakdown = Column(Text, nullable=True)  # JSON
-    recommendations = Column(Text, nullable=True)  # JSON
+    severity = Column(String(20), nullable=False)  # CRITICAL, HIGH, MEDIUM, LOW, INFO
+    exploitability = Column(Float, nullable=False)  # 0.0 - 1.0
+    impact_score = Column(Float, nullable=False)  # 0.0 - 1.0
+    confidence = Column(Float, nullable=False)  # 0.0 - 1.0
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
@@ -296,9 +220,138 @@ class Report(Base):
     __tablename__ = "reports"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
-    analysis_id = Column(GUID(), ForeignKey("analyses.id"), nullable=True, index=True)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, unique=True, index=True)
     report_format = Column(String(20), nullable=False)  # pdf, html, json
     file_path = Column(String(1024), nullable=False)
     file_size = Column(Integer, nullable=False)
     generated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class LogEntry(Base):
+    """Log entry model for pipeline execution tracking."""
+
+    __tablename__ = "log_entries"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=True, index=True)
+    stage = Column(String(100), nullable=False)
+    level = Column(String(20), nullable=False, default="INFO")
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    extra = Column(Text, nullable=True)
+
+
+class AppSetting(Base):
+    """Application settings model."""
+
+    __tablename__ = "app_settings"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    key = Column(String(255), unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=False)
+
+
+class Analysis(Base):
+    """Analysis model."""
+
+    __tablename__ = "analyses"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ======================================================================
+# NEW MODELS — Admin observability tables
+# ======================================================================
+
+class PayloadResult(Base):
+    """Individual payload execution result — visible in dashboard."""
+
+    __tablename__ = "payload_results"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    payload_id = Column(String(100), nullable=False)         # e.g. sql_basic_01
+    payload_type = Column(String(100), nullable=False)        # e.g. SQL_INJECTION
+    payload_category = Column(String(100), nullable=False)    # e.g. basic_or_injection
+    payload_string = Column(Text, nullable=False)             # the actual payload text
+    execution_status = Column(String(50), nullable=False, default="pending")
+    response_output = Column(Text, nullable=True)
+    exploit_success = Column(Boolean, default=False, nullable=False)
+    execution_time_ms = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="payload_results")
+
+
+class OllamaPrompt(Base):
+    """Stores all Ollama-generated prompts for admin visibility."""
+
+    __tablename__ = "ollama_prompts"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    prompt_type = Column(String(100), nullable=False)         # environment, analysis, etc.
+    prompt_text = Column(Text, nullable=False)
+    response_text = Column(Text, nullable=True)
+    generated_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="ollama_prompts")
+
+
+class DockerLog(Base):
+    """Docker container execution logs."""
+
+    __tablename__ = "docker_logs"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    container_id = Column(String(255), nullable=True)
+    log_output = Column(Text, nullable=True)
+    stdout = Column(Text, nullable=True)
+    stderr = Column(Text, nullable=True)
+    exit_code = Column(Integer, nullable=True)
+    execution_time = Column(Integer, nullable=True)   # ms
+    status = Column(String(50), nullable=False, default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="docker_logs")
+
+
+class BackendStageLog(Base):
+    """Pipeline stage execution tracking for admin panel."""
+
+    __tablename__ = "backend_stage_logs"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    stage_name = Column(String(100), nullable=False)
+    status = Column(String(50), nullable=False, default="pending")   # pending, running, completed, failed
+    start_time = Column(DateTime, nullable=True)
+    end_time = Column(DateTime, nullable=True)
+    output_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="backend_stage_logs")
+
+
+class DynamicScanLog(Base):
+    """Repository change detection and dynamic scan tracking."""
+
+    __tablename__ = "dynamic_scan_logs"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(GUID(), ForeignKey("analysis_results.id"), nullable=False, index=True)
+    repo_url = Column(String(1024), nullable=False)
+    change_detected = Column(Boolean, default=False, nullable=False)
+    change_log = Column(Text, nullable=True)
+    scan_status = Column(String(50), nullable=False, default="idle")  # idle, scanning, completed
+    scan_output = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="dynamic_scan_logs")

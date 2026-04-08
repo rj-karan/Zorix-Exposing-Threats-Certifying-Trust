@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import './Analysis.css'
 
 export default function Analysis() {
@@ -8,7 +8,7 @@ export default function Analysis() {
   const [affectedLine, setAffectedLine] = useState('')
   const [githubToken, setGithubToken] = useState('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState(null)
+  const [results, setResults] = useState<any>(null)
   const [error, setError] = useState('')
 
   const vulnerabilityTypes = [
@@ -196,7 +196,7 @@ export default function Analysis() {
                   <div className="finding-card">
                     <div className="finding-label">Vulnerability Confirmed</div>
                     <div className="finding-value">
-                      {results.vulnerable ? 'âœ“ YES' : 'âœ— NO'}
+                      {results.vulnerable ? '✓ YES' : '✗ NO'}
                     </div>
                   </div>
 
@@ -211,36 +211,91 @@ export default function Analysis() {
                   </div>
 
                   <div className="finding-card">
+                    <div className="finding-label">Confidence Score</div>
+                    <div className="finding-value" style={{ color: (results.confidence_score || 0) > 50 ? '#00ff64' : '#ffc800' }}>
+                      {results.confidence_score?.toFixed(1) || 0}%
+                    </div>
+                  </div>
+
+                  <div className="finding-card">
+                    <div className="finding-label">Environment Type</div>
+                    <div className="finding-value code-text">{results.environment_type || 'auto'}</div>
+                  </div>
+
+                  <div className="finding-card">
                     <div className="finding-label">Analysis ID</div>
                     <div className="finding-value code-text">{results.analysis_id.substring(0, 8)}...</div>
                   </div>
                 </div>
 
-                {/* Exploit Details */}
-                {results.exploit_details && results.exploit_details.length > 0 && (
-                  <div className="exploit-details-section" style={{ marginTop: '20px' }}>
-                    <h3 style={{ color: '#e8001d', marginBottom: '16px' }}>ðŸ¯ Exploit Execution Details</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {results.exploit_details.map((exploit: any, idx: number) => (
+                {/* Successful Exploit Payloads */}
+                {results.successful_payloads && results.successful_payloads.length > 0 && (
+                  <div style={{ marginTop: '20px' }}>
+                    <h3 style={{ color: '#00ff64', marginBottom: '16px', fontFamily: "'Share Tech Mono', monospace", letterSpacing: 1 }}>
+                      ✓ Successful Exploit Payloads ({results.successful_payloads.length})
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {results.successful_payloads.map((payload: any, idx: number) => (
                         <div key={idx} style={{
-                          border: '1px solid rgba(232, 0, 29, 0.3)',
+                          border: '1px solid rgba(0, 255, 100, 0.25)',
                           borderRadius: '4px',
-                          padding: '12px',
-                          background: 'rgba(0, 0, 0, 0.2)'
+                          padding: '14px',
+                          background: 'rgba(0, 255, 100, 0.04)'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ color: '#f0f0f0', fontWeight: 'bold' }}>{exploit.exploit_type || 'Unknown'}</span>
-                            <span style={{
-                              color: exploit.vulnerable ? '#00ff64' : '#e8001d',
-                              fontWeight: 'bold',
-                              fontSize: '12px'
-                            }}>
-                              {exploit.vulnerable ? 'âœ" VULNERABLE' : 'âœ— SAFE'}
+                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: '#00ff64', letterSpacing: 1 }}>
+                              [{payload.category}]
+                            </span>
+                            <span style={{ color: '#00ff64', fontWeight: 'bold', fontSize: '11px', fontFamily: "'Share Tech Mono', monospace" }}>
+                              SUCCESS
                             </span>
                           </div>
-                          <div style={{ fontSize: '12px', color: '#888', fontFamily: "'Share Tech Mono', monospace" }}>
-                            Status: {exploit.status || 'completed'} | Return Code: {exploit.return_code || 0}
+                          <div style={{
+                            fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: '#f0f0f0',
+                            background: 'rgba(0, 0, 0, 0.3)', padding: '10px 12px', borderRadius: 3,
+                            wordBreak: 'break-all' as const
+                          }}>
+                            Payload: {payload.payload}
                           </div>
+                          {payload.result && (
+                            <div style={{ fontSize: '11px', color: '#888', marginTop: '6px', fontFamily: "'Share Tech Mono', monospace" }}>
+                              Result: {payload.result}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* All Exploit Execution Details (includes failed) */}
+                {results.exploit_details && results.exploit_details.length > 0 && (
+                  <div className="exploit-details-section" style={{ marginTop: '20px' }}>
+                    <h3 style={{ color: '#e8001d', marginBottom: '16px' }}>All Payload Execution Results ({results.exploit_details.length})</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {results.exploit_details.map((exploit: any, idx: number) => (
+                        <div key={idx} style={{
+                          border: `1px solid ${exploit.exploit_success ? 'rgba(0, 255, 100, 0.2)' : 'rgba(232, 0, 29, 0.2)'}`,
+                          borderRadius: '4px',
+                          padding: '10px 12px',
+                          background: exploit.exploit_success ? 'rgba(0, 255, 100, 0.03)' : 'rgba(0, 0, 0, 0.15)',
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: '#888', marginRight: 8 }}>
+                              [{exploit.payload_category || exploit.exploit_type || 'unknown'}]
+                            </span>
+                            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: '#ccc' }}>
+                              {(exploit.payload_string || exploit.exploit_type || '').substring(0, 60)}
+                            </span>
+                          </div>
+                          <span style={{
+                            color: exploit.exploit_success || exploit.vulnerable ? '#00ff64' : '#e8001d',
+                            fontWeight: 'bold', fontSize: '10px', fontFamily: "'Share Tech Mono', monospace",
+                            marginLeft: 12,
+                          }}>
+                            {exploit.exploit_success || exploit.vulnerable ? '✓ VULNERABLE' : '✗ SAFE'}
+                          </span>
                         </div>
                       ))}
                     </div>

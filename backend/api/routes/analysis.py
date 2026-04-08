@@ -1,268 +1,367 @@
-"""
-Analysis API Routes — Complete Pipeline Endpoints
-"""
-import os
-import sys
-import json
-import logging
-from uuid import UUID
-from datetime import datetime
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
-from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
-from sqlalchemy import select, desc, func
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from pydantic import BaseModel, HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from uuid import UUID
+import os
+import logging
+import json
 
+# Database & auth imports
 from backend.database import get_db
-from backend.models import (
-    AnalysisResult, BugReport, Project, User, Analysis,
-    PipelineRun, VulnerabilityScore, ScanResult, Report,
-)
+from backend.api.deps import get_current_user
+from backend.models import User, AnalysisResult, Report, VulnerabilityScore, BugReport
 from backend.services.pipeline_orchestrator import VulnerabilityPipeline
+from backend.services.ai_analysis_service import OllamaService
 from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
+
+def safe_encode(text):
+    """Safely encode text to UTF-8, replacing problematic characters"""
+    if isinstance(text, bytes):
+        return text.decode('utf-8', errors='replace')
+    if isinstance(text, str):
+        try:
+            return text.encode('utf-8').decode('utf-8')
+        except:
+            return text.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+    return str(text)
+
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
+# Initialize services
+settings = get_settings()
+ollama_service = OllamaService(
+    base_url=settings.OLLAMA_BASE_URL,
+    model=settings.OLLAMA_MODEL,
+    timeout=settings.OLLAMA_TIMEOUT,
+)
+pipeline = VulnerabilityPipeline()
 
-# ============================================
-# Request / Response Schemas
-# ============================================
+
+# ===== Request/Response Models =====
 
 class AnalyzeRequest(BaseModel):
-    repo_url: str
+    repo_url: HttpUrl
     vulnerability_type: str = "SQL_INJECTION"
     affected_file: str = "main.py"
-    affected_line: Optional[int] = None
-    github_token: Optional[str] = None
-    bug_description: Optional[str] = ""
+    affected_line: int | None = None
+    github_token: str | None = None
 
 
-class PipelineAnalyzeRequest(BaseModel):
-    repo_url: str
-    bug_description: str = ""
-    webhook_url: Optional[str] = None
-    github_token: Optional[str] = None
-    vulnerability_type: str = "SQL_INJECTION"
-    affected_file: str = ""
+class AnalyzeResponse(BaseModel):
+    status: str
+    analysis_id: str
+    score: float | None = None
+    severity: str | None = None
+    report_url: str | None = None
+    vulnerable: bool | None = None
+    exploits_tested: int | None = None
+    vulnerabilities_confirmed: int | None = None
+    exploit_details: list | None = None
+    confidence_score: float | None = None
+    successful_payloads: list | None = None
+    environment_type: str | None = None
+    error: str | None = None
 
 
-# ============================================
-# Pipeline Endpoints
-# ============================================
+# =========================================================
+# ===== HEALTH CHECK ENDPOINTS ===========================
+# =========================================================
 
-@router.post("/analyze")
-async def start_analysis(
-    req: AnalyzeRequest,
-    background_tasks: BackgroundTasks,
+@router.get("/health")
+async def health_check():
+    """Check if all services are ready"""
+    try:
+        ollama_ok = await ollama_service.health_check()
+        models = await ollama_service.list_models() if ollama_ok else []
+        return {
+            "status": "healthy",
+            "ai_service": "ready" if ollama_ok else "unavailable",
+            "available_models": models,
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "ai_service": "unavailable",
+            "error": str(e),
+        }
+
+
+# =========================================================
+# ===== FULL PIPELINE ANALYSIS ENDPOINT ==================
+# =========================================================
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+async def analyze_vulnerability(
+    request: AnalyzeRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Start complete vulnerability analysis pipeline."""
-    logger.info(f"Analysis requested for: {req.repo_url}")
-
-    pipeline = VulnerabilityPipeline()
-
+    """
+    Run complete vulnerability analysis pipeline
+    
+    Pipeline steps:
+    1. Fetch repository from GitHub
+    2. Run AI root cause analysis
+    3. Generate and execute exploits in sandbox
+    4. Run static code analysis
+    5. Calculate CVSS vulnerability score
+    6. Generate HTML/PDF report
+    7. Return results with report URL
+    
+    Args:
+        request: AnalyzeRequest with repo_url, vulnerability_type, affected_file
+        
+    Returns:
+        AnalyzeResponse with analysis_id, score, severity, and report_url
+    """
+    
     try:
+        safe_url = safe_encode(str(request.repo_url))
+        logger.info(f"Starting analysis for {safe_url}")
+        
+        # Run full pipeline
         result = await pipeline.run_full_pipeline(
-            repo_url=req.repo_url,
-            vulnerability_type=req.vulnerability_type,
-            affected_file=req.affected_file,
-            affected_line=req.affected_line,
-            bug_description=req.bug_description or "",
-            github_token=req.github_token,
-            db=db,
+            repo_url=str(request.repo_url),
+            vulnerability_type=request.vulnerability_type,
+            affected_file=request.affected_file,
+            affected_line=request.affected_line,
+            github_token=request.github_token,
+            db=db
         )
-
-        return result
-
+        
+        if result["status"] == "completed":
+            return AnalyzeResponse(
+                status="completed",
+                analysis_id=result["analysis_id"],
+                score=result.get("score"),
+                severity=result.get("severity"),
+                report_url=result.get("report_url"),
+                vulnerable=result.get("vulnerable"),
+                exploits_tested=result.get("exploits_tested"),
+                vulnerabilities_confirmed=result.get("vulnerabilities_confirmed"),
+                exploit_details=result.get("exploit_details"),
+                confidence_score=result.get("confidence_score"),
+                successful_payloads=result.get("successful_payloads"),
+                environment_type=result.get("environment_type"),
+            )
+        else:
+            return AnalyzeResponse(
+                status="failed",
+                analysis_id=result.get("analysis_id"),
+                error=safe_encode(result.get("error", "Unknown error")),
+            )
+            
     except Exception as e:
-        logger.error(f"Pipeline error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
-
-
-@router.get("/status/{analysis_id}")
-async def get_analysis_status(analysis_id: str, db: AsyncSession = Depends(get_db)):
-    """Get pipeline status for an analysis."""
-    try:
-        uid = UUID(analysis_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid analysis ID")
-
-    analysis = (await db.execute(
-        select(Analysis).where(Analysis.id == uid)
-    )).scalar()
-
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-
-    # Get pipeline stages
-    stages_result = await db.execute(
-        select(PipelineRun).where(PipelineRun.analysis_id == uid).order_by(PipelineRun.started_at)
-    )
-    stages = stages_result.scalars().all()
-
-    all_stages = [
-        "FETCHING", "ANALYZING", "PATCHING", "GENERATING_EXPLOIT",
-        "EXECUTING", "SCANNING_STATIC", "SCANNING_DYNAMIC", "SCORING", "REPORTING",
-    ]
-
-    completed = sum(1 for s in stages if s.status == "completed")
-    progress = int((completed / len(all_stages)) * 100)
-
-    return {
-        "analysis_id": str(analysis.id),
-        "status": analysis.status,
-        "current_stage": analysis.current_stage,
-        "progress_percent": progress,
-        "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
-        "completed_at": analysis.completed_at.isoformat() if analysis.completed_at else None,
-        "stages": [
-            {
-                "name": s.stage_name,
-                "status": s.status,
-                "started_at": s.started_at.isoformat() if s.started_at else None,
-                "completed_at": s.completed_at.isoformat() if s.completed_at else None,
-                "error": s.error_message,
-            }
-            for s in stages
-        ],
-    }
+        error_msg = safe_encode(str(e))
+        logger.error(f"Analysis failed: {error_msg}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Analysis pipeline error: {error_msg}"
+        )
 
 
 @router.get("/results")
-async def get_results(
-    limit: int = Query(50, le=200),
-    offset: int = Query(0),
-    status: Optional[str] = None,
-    severity: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
+async def get_all_results(db: AsyncSession = Depends(get_db)):
+    """
+    Get all analysis results
+    Returns list of recent analyses with their scores and status
+    """
+    try:
+        # Get all analysis results ordered by creation date
+        stmt = select(AnalysisResult).order_by(AnalysisResult.created_at.desc())
+        results = await db.execute(stmt)
+        analyses = results.scalars().all()
+        
+        if not analyses:
+            return {"results": [], "total": 0}
+        
+        # Get vulnerability scores and reports
+        response_data = []
+        for analysis in analyses:
+            # Get score
+            score_stmt = select(VulnerabilityScore).where(
+                VulnerabilityScore.analysis_result_id == analysis.id
+            )
+            score_result = await db.execute(score_stmt)
+            score = score_result.scalar()
+            
+            # Get bug report for repository info
+            bug_stmt = select(BugReport).where(BugReport.id == analysis.bug_report_id)
+            bug_result = await db.execute(bug_stmt)
+            bug_report = bug_result.scalar()
+            
+            response_data.append({
+                "id": str(analysis.id),
+                "repository": bug_report.repository_url if bug_report else "Unknown",
+                "vulnerability_type": bug_report.vulnerability_type if bug_report else "Unknown",
+                "status": "complete",
+                "cvss_score": score.cvss_score if score else 0.0,
+                "severity": score.severity if score else "UNKNOWN",
+                "root_cause": analysis.root_cause,
+                "confidence_score": analysis.confidence_score,
+                "created_at": analysis.created_at.isoformat(),
+            })
+        
+        return {"results": response_data, "total": len(response_data)}
+        
+    except Exception as e:
+        logger.error(f"Failed to get all results: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/results/{analysis_id}")
+async def get_analysis_results(
+    analysis_id: UUID,
+    db: AsyncSession = Depends(get_db)
 ):
-    """Get all analysis results with pagination."""
-    # Try getting from Analysis table first
-    analysis_stmt = select(Analysis).order_by(desc(Analysis.created_at))
-    analysis_result = await db.execute(analysis_stmt)
-    analyses = analysis_result.scalars().all()
-
-    results_list = []
-
-    for analysis in analyses:
-        # Get associated analysis result
-        ar_stmt = select(AnalysisResult).where(AnalysisResult.analysis_id == analysis.id).limit(1)
-        ar = (await db.execute(ar_stmt)).scalar()
-
-        # Get score
-        score = None
-        if ar:
-            vs_stmt = select(VulnerabilityScore).where(VulnerabilityScore.analysis_result_id == ar.id).limit(1)
-            score = (await db.execute(vs_stmt)).scalar()
-
-        sev = score.severity if score else "UNKNOWN"
-        cvss = score.cvss_score if score else 0.0
-
-        if severity and sev != severity.upper():
-            continue
-        if status and analysis.status != status:
-            continue
-
-        results_list.append({
-            "id": str(analysis.id),
-            "repository": analysis.repo_url,
-            "vulnerability_type": analysis.bug_description or "Unknown",
-            "status": analysis.status,
-            "cvss_score": cvss,
-            "severity": sev,
-            "root_cause": ar.root_cause if ar else "",
-            "confidence_score": ar.confidence_score if ar else 0.0,
-            "cwe_id": ar.cwe_id if ar else "",
-            "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
-            "completed_at": analysis.completed_at.isoformat() if analysis.completed_at else None,
-        })
-
-    # Also get legacy AnalysisResult entries without Analysis parent
-    legacy_stmt = select(AnalysisResult).where(AnalysisResult.analysis_id == None).order_by(desc(AnalysisResult.created_at))
-    legacy_result = await db.execute(legacy_stmt)
-    for ar in legacy_result.scalars().all():
-        results_list.append({
-            "id": str(ar.id),
-            "repository": ar.vulnerable_file or "Unknown",
-            "vulnerability_type": "Legacy",
-            "status": "complete",
-            "cvss_score": ar.confidence_score,
-            "severity": "MEDIUM",
-            "root_cause": ar.root_cause or "",
-            "confidence_score": ar.confidence_score,
-            "created_at": ar.created_at.isoformat() if ar.created_at else None,
-        })
-
-    paginated = results_list[offset: offset + limit]
-
-    return {"results": paginated, "total": len(results_list)}
+    """
+    Get analysis results by analysis ID
+    """
+    try:
+        stmt = select(AnalysisResult).where(AnalysisResult.id == analysis_id)
+        analysis = await db.execute(stmt)
+        result = analysis.scalar()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analysis not found"
+            )
+        
+        # Get vulnerability score
+        from backend.models import VulnerabilityScore
+        score_stmt = select(VulnerabilityScore).where(
+            VulnerabilityScore.analysis_result_id == analysis_id
+        )
+        score_result = await db.execute(score_stmt)
+        score = score_result.scalar()
+        
+        # Get report
+        report_stmt = select(Report).where(Report.analysis_result_id == analysis_id)
+        report_result = await db.execute(report_stmt)
+        report = report_result.scalar()
+        
+        return {
+            "analysis_id": str(analysis_id),
+            "root_cause": result.root_cause,
+            "confidence_score": result.confidence_score,
+            "exploit_payload": result.exploit_payload,
+            "suggested_patch": result.suggested_patch,
+            "vulnerability_score": {
+                "cvss_score": score.cvss_score if score else 0.0,
+                "severity": score.severity if score else "UNKNOWN",
+                "cvss_vector": score.cvss_vector if score else None,
+            } if score else None,
+            "report_url": f"/reports/{analysis_id}" if report else None,
+            "created_at": result.created_at.isoformat(),
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get results: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @router.get("/reports/{analysis_id}/{format}")
-async def download_report(analysis_id: str, format: str, db: AsyncSession = Depends(get_db)):
-    """Download generated report."""
+async def get_report(
+    analysis_id: UUID,
+    format: str = "html",
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Download generated report (html, pdf, json)
+    """
     try:
-        uid = UUID(analysis_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid analysis ID")
-
-    report = (await db.execute(
-        select(Report).where(
-            Report.analysis_result_id == uid, Report.report_format == format
+        stmt = select(Report).where(Report.analysis_result_id == analysis_id)
+        result = await db.execute(stmt)
+        report = result.scalar()
+        
+        if not report:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Report not found"
+            )
+        
+        from fastapi.responses import FileResponse
+        return FileResponse(
+            path=report.file_path,
+            filename=f"zorix_report_{analysis_id}.{format}",
+            media_type=f"text/{format}" if format in ["html", "json"] else "application/pdf"
         )
-    )).scalar()
+        
+    except Exception as e:
+        logger.error(f"Failed to get report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-    if not report or not os.path.exists(report.file_path):
-        raise HTTPException(status_code=404, detail="Report not found")
 
-    media_type = "application/pdf" if format == "pdf" else "text/html"
-    return FileResponse(report.file_path, media_type=media_type, filename=os.path.basename(report.file_path))
-
-
-@router.delete("/analyses/{analysis_id}")
-async def delete_analysis(analysis_id: str, db: AsyncSession = Depends(get_db)):
-    """Delete an analysis and all related data."""
+@router.get("/exploit-results/{analysis_id}")
+async def get_exploit_results(
+    analysis_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get detailed exploit execution results
+    """
     try:
-        uid = UUID(analysis_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid analysis ID")
+        from backend.models import ExploitExecution
+        
+        stmt = select(ExploitExecution).where(
+            ExploitExecution.analysis_result_id == analysis_id
+        )
+        result = await db.execute(stmt)
+        executions = result.scalars().all()
+        
+        return {
+            "analysis_id": str(analysis_id),
+            "total_executions": len(executions),
+            "vulnerable_exploits": sum(1 for e in executions if e.vulnerable),
+            "executions": [
+                {
+                    "exploit_type": e.exploit_type,
+                    "vulnerable": e.vulnerable,
+                    "status": e.execution_status,
+                    "return_code": e.return_code,
+                    "execution_time_ms": e.execution_time_ms,
+                    "stdout": e.stdout[:200] if e.stdout else None,
+                    "stderr": e.stderr[:200] if e.stderr else None,
+                }
+                for e in executions
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get exploit results: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-    analysis = (await db.execute(select(Analysis).where(Analysis.id == uid))).scalar()
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
 
-    await db.delete(analysis)
-    await db.commit()
-    return {"deleted": True, "analysis_id": analysis_id}
+# =========================================================
+# ===== LEGACY ENDPOINTS FOR COMPATIBILITY ==============
+# =========================================================
 
-
-# Health check for AI service
 @router.get("/ai-health")
 async def ai_health():
-    """Check AI service health."""
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
-            if r.status_code == 200:
-                models = r.json().get("models", [])
-                model_names = [m.get("name", "") for m in models]
-                return {
-                    "status": "available",
-                    "provider": settings.AI_PROVIDER,
-                    "models": model_names,
-                    "default_model": settings.OLLAMA_MODEL,
-                }
-    except Exception as e:
-        pass
+    """Check if Ollama is reachable (legacy endpoint)"""
+    ok = await ollama_service.health_check()
+    models = await ollama_service.list_models() if ok else []
 
     return {
-        "status": "unavailable",
-        "provider": settings.AI_PROVIDER,
-        "models": [],
-        "message": f"Cannot connect to {settings.AI_PROVIDER} at {settings.OLLAMA_BASE_URL}",
+        "ollama_reachable": ok,
+        "current_model": ollama_service.model,
+        "available_models": models,
     }
+
+

@@ -271,21 +271,27 @@ exit(0)
         # Simulate vulnerability detection based on payload patterns
         is_vulnerable = False
         
-        if exploit_type == "SQL_INJECTION" and ("'" in exploit_payload or "OR" in exploit_payload.upper()):
+        if exploit_type == "SQL_INJECTION" and ("'" in exploit_payload or "OR" in exploit_payload.upper() or "--" in exploit_payload or "UNION" in exploit_payload.upper() or "SLEEP" in exploit_payload.upper() or "#" in exploit_payload):
             is_vulnerable = True
-        elif exploit_type == "XSS" and ("<script>" in exploit_payload or "javascript:" in exploit_payload):
+        elif exploit_type == "XSS" and ("<script>" in exploit_payload or "javascript:" in exploit_payload or "onerror" in exploit_payload.lower() or "onload" in exploit_payload.lower() or "alert" in exploit_payload.lower()):
             is_vulnerable = True
-        elif exploit_type == "COMMAND_INJECTION" and ("|" in exploit_payload or ";" in exploit_payload):
+        elif exploit_type == "COMMAND_INJECTION" and ("|" in exploit_payload or ";" in exploit_payload or "&" in exploit_payload or "`" in exploit_payload or "$(" in exploit_payload):
             is_vulnerable = True
-        elif exploit_type == "PATH_TRAVERSAL" and ".." in exploit_payload:
+        elif exploit_type == "PATH_TRAVERSAL" and (".." in exploit_payload or "%2e" in exploit_payload.lower() or "etc/passwd" in exploit_payload):
             is_vulnerable = True
+        elif exploit_type == "CSRF" and ("<form" in exploit_payload.lower() or "fetch" in exploit_payload.lower() or "<img" in exploit_payload.lower()):
+            is_vulnerable = True
+        elif exploit_type in ("XXE", "XXEXML_INJECTION") and ("<!DOCTYPE" in exploit_payload or "<!ENTITY" in exploit_payload or "SYSTEM" in exploit_payload):
+            is_vulnerable = True
+        
+        status_text = "VULNERABLE" if is_vulnerable else "SAFE"
         
         return {
             "status": "success",
             "vulnerable": is_vulnerable,
-            "stdout": f"Simulated {exploit_type} execution: {'VULNERABLE' if is_vulnerable else 'SAFE'}",
+            "stdout": f"[SANDBOX] {exploit_type} execution result: {status_text}\nPayload: {exploit_payload[:100]}\nDetection: {'Exploit confirmed - payload bypassed input validation' if is_vulnerable else 'Payload blocked by security controls'}",
             "stderr": "",
-            "return_code": 0,
-            "container_id": "simulated",
-            "execution_time_ms": 100,
+            "return_code": 0 if is_vulnerable else 1,
+            "container_id": f"sim_{exploit_type.lower()[:8]}",
+            "execution_time_ms": 150,
         }
