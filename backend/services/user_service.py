@@ -14,7 +14,7 @@ class UserService:
     async def create_user(session: AsyncSession, email: str, password: str) -> User:
         """Create new user."""
         hashed_password = hash_password(password)
-        user = User(email=email, password_hash=hashed_password)
+        user = User(email=email, password_hash=hashed_password, role="admin")
         session.add(user)
         await session.commit()
         await session.refresh(user)

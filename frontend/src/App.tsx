@@ -4,9 +4,14 @@ import Vulnerabilities from './pages/Vulnerabilities'
 import Reports from './pages/Reports'
 import Analysis from './pages/Analysis'
 import AdminPanel from './pages/AdminPanel'
+import Analytics from './pages/Analytics'
+import Patches from './pages/Patches'
+import Settings from './pages/Settings'
+import Login from './pages/Login'
 
-function UserAccountSection() {
+function UserAccountSection({ onLogout }: { onLogout: () => void }) {
   const email = localStorage.getItem('user_email') || 'Not logged in'
+  const role = localStorage.getItem('user_role') || 'admin'
   const initials = email
     .split('@')[0]
     .split('.')
@@ -16,13 +21,19 @@ function UserAccountSection() {
 
   return (
     <div style={{ padding: '18px 22px', borderTop: '1px solid rgba(232,0,29,.12)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 3, border: '1px solid rgba(232,0,29,.15)', background: 'rgba(232,0,29,.04)', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 3, border: '1px solid rgba(232,0,29,.15)', background: 'rgba(232,0,29,.04)' }}>
         <div style={{ width: 36, height: 36, borderRadius: 3, background: '#e8001d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, color: '#fff', fontWeight: 700 }}>{initials}</div>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#f0f0f0' }}>{email.split('@')[0]}</div>
-          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 9, color: '#888', letterSpacing: 1, textTransform: 'lowercase' }}>{email}</div>
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 9, color: '#00ff64', letterSpacing: 1, textTransform: 'uppercase' }}>{role.toUpperCase()}</div>
         </div>
       </div>
+      <button
+        onClick={onLogout}
+        style={{ width: '100%', marginTop: 10, fontFamily: "'Share Tech Mono',monospace", fontSize: 10, letterSpacing: 2, padding: '8px 0', border: '1px solid rgba(232,0,29,.25)', background: 'rgba(232,0,29,.06)', color: '#e8001d', cursor: 'pointer', borderRadius: 2, textTransform: 'uppercase', transition: 'all .2s' }}
+      >
+        ⏻ Logout
+      </button>
     </div>
   )
 }
@@ -41,6 +52,7 @@ const NAV = [
 ]
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'))
   const [tab, setTab] = useState<Tab>('dashboard')
   const curRef  = useRef<HTMLDivElement>(null)
   const curRRef = useRef<HTMLDivElement>(null)
@@ -60,6 +72,22 @@ export default function App() {
     const id = requestAnimationFrame(animate)
     return () => { document.removeEventListener('mousemove', move); cancelAnimationFrame(id) }
   }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user_email')
+    localStorage.removeItem('user_role')
+    setIsLoggedIn(false)
+  }
+
+  const handleLoginSuccess = () => {
+    localStorage.setItem('user_role', 'admin')
+    setIsLoggedIn(true)
+  }
+
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={handleLoginSuccess} />
+  }
 
   return (
     <div style={{ display:'flex', minHeight:'100vh', position:'relative', zIndex:1 }}>
@@ -90,7 +118,7 @@ export default function App() {
           ))}
         </nav>
 
-        <UserAccountSection />
+        <UserAccountSection onLogout={handleLogout} />
       </aside>
 
       {/* MAIN */}
@@ -132,23 +160,13 @@ export default function App() {
           {tab === 'reports'         && <Reports />}
           {tab === 'analysis'        && <Analysis />}
           {tab === 'admin'           && <AdminPanel />}
-          {tab === 'analytics'       && <ComingSoon label="Analytics" />}
-          {tab === 'patches'         && <ComingSoon label="Patches" />}
-          {tab === 'settings'        && <ComingSoon label="Settings" />}
+          {tab === 'analytics'       && <Analytics />}
+          {tab === 'patches'         && <Patches />}
+          {tab === 'settings'        && <Settings />}
         </main>
       </div>
       <style>{`@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}`}</style>
     </div>
   )
 }
-
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:16 }}>
-      <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:48, letterSpacing:8, color:'rgba(232,0,29,.3)' }}>{label}</div>
-      <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:'#555', letterSpacing:3 }}>// COMING SOON</div>
-    </div>
-  )
-}
-
 

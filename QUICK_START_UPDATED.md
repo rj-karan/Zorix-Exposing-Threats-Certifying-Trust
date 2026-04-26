@@ -65,7 +65,7 @@ Sends to Ollama (local AI)
 Ollama processes the code
 Runs inference on mistral model
 Takes 30-120 seconds depending on code size
-Returns: JSON with analysis results
+Returns: JSON with analysis cdresults
            ↓
 ═══ STEP 4: FORMAT RESULTS ═══
 Extracts:
